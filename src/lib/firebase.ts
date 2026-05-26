@@ -12,8 +12,13 @@ export const signInWithGoogle = async () => {
   try {
     const result = await signInWithPopup(auth, googleProvider);
     return result.user;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Google Sign-In Error:", error);
+    if (error.code === 'auth/popup-closed-by-user' || error.message.includes('Cross-Origin')) {
+      alert("Đăng nhập bằng Popup bị trình duyệt chặn khi chạy trong iframe (AI Studio). Vui lòng mở ứng dụng trong thẻ mới (Mũi tên góc trên bên phải) để đăng nhập, hoặc cho phép Popup trên trình duyệt.");
+    } else {
+      alert("Lỗi đăng nhập: " + error.message);
+    }
     throw error;
   }
 };

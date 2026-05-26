@@ -7,7 +7,7 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
-  app.use(express.json());
+  app.use(express.json({ limit: '50mb' }));
 
   // GEMINI API Handler
   app.post("/api/generate-plan", async (req, res) => {
@@ -117,29 +117,53 @@ Mục tiêu JSON Format (Cần parse Javascript được):
         },
       });
 
-      const { weight, height, age, gender, goal, activityLevel, foodQuery } = req.body;
+      const { weight, height, age, gender, goal, activityLevel, foodQuery, imageBase64 } = req.body;
 
-      const prompt = `Bạn là chuyên gia dinh dưỡng thể hình (AI Nutritionist).
+      const textPrompt = `Bạn là chuyên gia dinh dưỡng thể hình (AI Nutritionist).
 Người dùng có các chỉ số sau:
 - Giới tính: ${gender}
 - Nhập: ${age} tuổi, Cao: ${height} cm, Nặng: ${weight} kg
 - Mức độ hoạt động: ${activityLevel}
 - Mục tiêu: ${goal}
 
-Họ vừa cung cấp danh sách thức ăn họ ăn (có thể trong 1 bữa hoặc 1 ngày):
-"${foodQuery}"
+Họ vừa cung cấp danh sách thức ăn họ ăn ("${foodQuery || "Không có mô tả text"}") và/hoặc một bức ảnh chụp bữa ăn (nếu có).
 
 Nhiệm vụ của bạn:
 1. Tính TDEE của họ dựa vào chỉ số.
 2. Từ mục tiêu, đưa ra Target Calories (Calo mục tiêu mỗi ngày).
-3. Phân tích ước tính tổng Calo, Protein (g), Carbs (g), Fat (g) của lượng thức ăn họ vừa nhập.
+3. Phân tích ước tính tổng Calo, Protein (g), Carbs (g), Fat (g) của lượng thức ăn họ vừa cung cấp qua ảnh và text. Hãy ước chừng nếu có ảnh.
 4. Đưa ra lời khuyên ngắn gọn (khoảng 2-3 câu) xem lượng ăn này so với mục tiêu thì hợp lý không, cần ăn thêm gì hoặc bớt gì.
 
 Hãy trả về dưới định dạng JSON đúng schema sau, không kèm bất kỳ markdown/text thừa nào.`;
 
+      let contents: any = textPrompt;
+      if (imageBase64) {
+        // extract mime type and base64 data
+        const matches = imageBase64.match(/^data:(image\/[a-zA-Z]+);base64,(.*)$/);
+        let mimeType = "image/jpeg";
+        let base64Data = imageBase64;
+        if (matches && matches.length === 3) {
+          mimeType = matches[1];
+          base64Data = matches[2];
+        } else {
+           // fallback if it's just raw base64
+           base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, '');
+        }
+
+        contents = [
+          {
+            inlineData: {
+              data: base64Data,
+              mimeType: mimeType,
+            }
+          },
+          textPrompt
+        ];
+      }
+
       const response = await ai.models.generateContent({
         model: "gemini-3.5-flash",
-        contents: prompt,
+        contents: contents,
         config: {
           responseMimeType: "application/json",
           responseSchema: {

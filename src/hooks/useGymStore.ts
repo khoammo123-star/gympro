@@ -7,6 +7,7 @@ const defaultState: AppState = {
   metrics: [],
   weeklyPlan: [],
   dailyLogs: {},
+  nutritionLogs: [],
 };
 
 export function useGymStore() {
@@ -76,5 +77,19 @@ export function useGymStore() {
     });
   };
 
-  return { state, addMetric, removeMetric, saveWeeklyPlan, clearWeeklyPlanDay, toggleDailyExercise, updateFullWeeklyPlan };
+  const addNutritionLog = (log: Omit<import('../types').NutritionLog, 'id'>) => {
+    setState(s => ({
+      ...s,
+      nutritionLogs: [...(s.nutritionLogs || []), { ...log, id: Date.now().toString() }]
+    }));
+  };
+
+  const removeNutritionLog = (id: string) => {
+    setState(s => ({
+      ...s,
+      nutritionLogs: (s.nutritionLogs || []).filter(l => l.id !== id)
+    }));
+  };
+
+  return { state, addMetric, removeMetric, saveWeeklyPlan, clearWeeklyPlanDay, toggleDailyExercise, updateFullWeeklyPlan, addNutritionLog, removeNutritionLog };
 }

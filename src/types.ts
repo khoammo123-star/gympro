@@ -7,6 +7,7 @@ export interface Exercise {
   secondaryMuscles?: MuscleGroup[];
   equipment: string;
   description?: string;
+  youtubeId?: string;
 }
 
 export interface BodyMetric {
@@ -30,10 +31,27 @@ export interface DailyLog {
   completedExercises: string[]; // exercise plan IDs
 }
 
+export interface NutritionLog {
+  id: string;
+  date: string;
+  foodQuery: string;
+  tdee: number;
+  targetCalories: number;
+  foodAnalysis: {
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+  };
+  advice: string;
+  imageBase64?: string;
+}
+
 export interface AppState {
   metrics: BodyMetric[];
   weeklyPlan: WorkoutPlanItem[];
   dailyLogs: Record<string, DailyLog>; // key is YYYY-MM-DD
+  nutritionLogs: NutritionLog[];
 }
 
 export const MuscleSynergy: Record<MuscleGroup, MuscleGroup[]> = {

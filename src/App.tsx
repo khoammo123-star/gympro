@@ -17,7 +17,7 @@ export default function App() {
       {activeTab === "today" && <TodayView state={store.state} toggleExercise={store.toggleDailyExercise} />}
       {activeTab === "schedule" && <ScheduleView state={store.state} saveWeeklyPlan={store.saveWeeklyPlan} clearPlanDay={store.clearWeeklyPlanDay} updateFullWeeklyPlan={store.updateFullWeeklyPlan} />}
       {activeTab === "progress" && <ProgressView state={store.state} addMetric={store.addMetric} removeMetric={store.removeMetric} />}
-      {activeTab === "nutrition" && <NutritionView state={store.state} />}
+      {activeTab === "nutrition" && <NutritionView state={store.state} addLog={store.addNutritionLog} removeLog={store.removeNutritionLog} />}
       {activeTab === "exercises" && <ExercisesView />}
       {activeTab === "profile" && <ProfileView state={store.state} />}
     </Layout>
