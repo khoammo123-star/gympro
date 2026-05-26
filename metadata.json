@@ -1,0 +1,6 @@
+{
+  "name": "GymTracker Pro",
+  "description": "Theo dõi tập gym, lên lịch theo tuần và báo cáo chỉ số cơ thể.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
