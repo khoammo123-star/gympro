@@ -53,6 +53,10 @@ export function useGymStore() {
     }));
   };
 
+  const updateFullWeeklyPlan = (newPlan: WorkoutPlanItem[]) => {
+    setState(s => ({ ...s, weeklyPlan: newPlan }));
+  };
+
   const toggleDailyExercise = (date: string, exercisePlanId: string) => {
     setState(s => {
       const currentLog = s.dailyLogs[date] || { date, completedExercises: [] };
@@ -72,5 +76,5 @@ export function useGymStore() {
     });
   };
 
-  return { state, addMetric, removeMetric, saveWeeklyPlan, clearWeeklyPlanDay, toggleDailyExercise };
+  return { state, addMetric, removeMetric, saveWeeklyPlan, clearWeeklyPlanDay, toggleDailyExercise, updateFullWeeklyPlan };
 }

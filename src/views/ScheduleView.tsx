@@ -8,15 +8,57 @@ type Props = {
   state: AppState;
   saveWeeklyPlan: (d: number, m: MuscleGroup, s: MuscleGroup[], ex: WorkoutPlanItem['exercises']) => void;
   clearPlanDay: (d: number) => void;
+  updateFullWeeklyPlan: (plan: WorkoutPlanItem[]) => void;
 };
 
 const DAYS = ['CHỦ NHẬT', 'THỨ 2', 'THỨ 3', 'THỨ 4', 'THỨ 5', 'THỨ 6', 'THỨ 7'];
 const SHORT_DAYS = ['CN', 'TH2', 'TH3', 'TH4', 'TH5', 'TH6', 'TH7'];
 const MUSCLES: MuscleGroup[] = ['Ngực', 'Lưng', 'Chân', 'Vai', 'Tay', 'Bụng', 'Cardio'];
 
-export default function ScheduleView({ state, saveWeeklyPlan, clearPlanDay }: Props) {
+export default function ScheduleView({ state, saveWeeklyPlan, clearPlanDay, updateFullWeeklyPlan }: Props) {
   const [editingDay, setEditingDay] = useState<number | null>(null);
+  const [showAiModal, setShowAiModal] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiForm, setAiForm] = useState({ age: 25, daysPerWeek: 4, goal: 'Giảm mỡ', weaknesses: '' });
   
+  const generateAiPlan = async () => {
+    setAiLoading(true);
+    try {
+      const resp = await fetch('/api/generate-plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(aiForm)
+      });
+      const data = await resp.json();
+      if (data.plan) {
+        const newWeeklyPlan: WorkoutPlanItem[] = [];
+        Object.entries(data.plan).forEach(([day, planObject]) => {
+          const po = planObject as any;
+          newWeeklyPlan.push({
+            id: Date.now().toString() + Math.random(),
+            dayOfWeek: Number(day),
+            primaryMuscle: po.primaryMuscle,
+            secondaryMuscles: po.secondaryMuscles || [],
+            exercises: (po.exercises || []).map((ex: any) => ({
+              id: Date.now().toString() + Math.random(),
+              exerciseId: ex.exerciseId,
+              sets: ex.sets || 3,
+              reps: ex.reps || "8-12"
+            }))
+          });
+        });
+        updateFullWeeklyPlan(newWeeklyPlan);
+        setShowAiModal(false);
+      } else {
+        alert(data.error || "Có lỗi xảy ra khi tạo kế hoạch");
+      }
+    } catch (e) {
+      alert("Lỗi kết nối AI");
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
   // Edit State
   const [primary, setPrimary] = useState<MuscleGroup | null>(null);
   const [secondary, setSecondary] = useState<MuscleGroup[]>([]);
@@ -164,15 +206,26 @@ export default function ScheduleView({ state, saveWeeklyPlan, clearPlanDay }: Pr
             <div className="flex-1 flex flex-col">
               <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500 mb-3">3. Bài tập đề xuất</h3>
               <div className="flex flex-col gap-2 overflow-y-auto custom-scrollbar flex-1">
-                {relevantExercises.map((ex) => (
+                {relevantExercises.map((ex) => {
+                  const count = exercises.filter(e => e.exerciseId === ex.id).length;
+                  return (
                   <div key={ex.id} 
                     onClick={() => addExercise(ex.id)}
-                    className="p-3 border border-zinc-800 bg-black hover:border-lime-400 cursor-pointer group"
+                    className={cn(
+                      "p-3 border cursor-pointer group relative transition-colors",
+                      count > 0 ? "border-lime-500/50 bg-lime-400/5 hover:border-lime-400" : "border-zinc-800 bg-black hover:border-lime-400"
+                    )}
                   >
                     <p className="font-bold text-sm text-zinc-200 group-hover:text-lime-400">{ex.name}</p>
                     <p className="text-[10px] text-zinc-500 italic mt-1 font-bold">{ex.targetMuscle} {ex.equipment && `· ${ex.equipment}`}</p>
+                    {count > 0 && (
+                      <div className="absolute top-2 right-2 w-5 h-5 bg-lime-400 text-black text-[10px] font-black flex items-center justify-center rounded-sm">
+                        {count}
+                      </div>
+                    )}
                   </div>
-                ))}
+                  )
+                })}
               </div>
             </div>
           )}
@@ -180,11 +233,69 @@ export default function ScheduleView({ state, saveWeeklyPlan, clearPlanDay }: Pr
       )}
 
       {/* Main Content Area */}
-      <section className="flex-1 p-6 md:p-8 flex flex-col gap-8 lg:overflow-y-auto">
+      <section className="flex-1 p-6 md:p-8 flex flex-col gap-8 lg:overflow-y-auto relative">
         <div className="space-y-4">
-           <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500 mb-3 block">Lịch Tập Tuần</h3>
+           <div className="flex justify-between items-center mb-3">
+             <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500 block">Lịch Tập Tuần</h3>
+             <button onClick={() => setShowAiModal(true)} className="flex items-center gap-2 bg-gradient-to-r from-indigo-500 to-purple-600 px-3 py-1.5 text-[10px] font-bold text-white uppercase tracking-widest rounded-sm hover:opacity-90 transition-opacity whitespace-nowrap">
+               <Zap className="w-3 h-3" />
+               Huấn Luyện Viên AI
+             </button>
+           </div>
            {renderWeeklyBlocks()}
         </div>
+
+        {showAiModal && (
+          <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in">
+             <div className="bg-zinc-950 border border-zinc-800 p-6 md:p-8 w-full max-w-lg max-h-[90vh] overflow-y-auto">
+               <div className="flex justify-between items-start mb-6">
+                 <div>
+                   <h2 className="text-2xl font-black uppercase italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-500 flex items-center gap-2"><Zap className="w-6 h-6 text-purple-500"/> AI COACH</h2>
+                   <p className="text-xs text-zinc-500 font-bold uppercase tracking-widest mt-1">Tạo lịch tập thông minh bằng AI</p>
+                 </div>
+                 <button onClick={() => setShowAiModal(false)} className="text-zinc-500 hover:text-white"><X className="w-5 h-5"/></button>
+               </div>
+               
+               <div className="space-y-4">
+                 <div>
+                   <label className="text-[10px] uppercase font-bold text-zinc-500 tracking-widest mb-1 block">Độ Tuổi</label>
+                   <input type="number" min={12} max={100} value={aiForm.age} onChange={e => setAiForm({...aiForm, age: Number(e.target.value)})} className="w-full bg-zinc-900 border border-zinc-800 p-3 text-white font-mono focus:outline-none focus:border-purple-500 transition-colors" />
+                 </div>
+                 
+                 <div>
+                   <label className="text-[10px] uppercase font-bold text-zinc-500 tracking-widest mb-1 block">Số buổi tập / tuần (1-7)</label>
+                   <input type="number" min={1} max={7} value={aiForm.daysPerWeek} onChange={e => setAiForm({...aiForm, daysPerWeek: Number(e.target.value)})} className="w-full bg-zinc-900 border border-zinc-800 p-3 text-white font-mono focus:outline-none focus:border-purple-500 transition-colors" />
+                 </div>
+
+                 <div>
+                   <label className="text-[10px] uppercase font-bold text-zinc-500 tracking-widest mb-1 block">Mục Tiêu</label>
+                   <select value={aiForm.goal} onChange={e => setAiForm({...aiForm, goal: e.target.value})} className="w-full bg-zinc-900 border border-zinc-800 p-3 text-white focus:outline-none focus:border-purple-500 transition-colors appearance-none font-bold">
+                     <option value="Giảm mỡ">Giảm mỡ cắt nét (Fat loss)</option>
+                     <option value="Tăng cơ">Tăng cơ (Muscle gain)</option>
+                     <option value="Tăng sức mạnh">Tăng sức mạnh (Strength)</option>
+                     <option value="Sức khỏe tổng quát">Duy trì / Sức khỏe tổng quát</option>
+                   </select>
+                 </div>
+
+                 <div>
+                   <label className="text-[10px] uppercase font-bold text-zinc-500 tracking-widest mb-1 block">Khuyết điểm / Ghi chú</label>
+                   <textarea rows={3} value={aiForm.weaknesses} onChange={e => setAiForm({...aiForm, weaknesses: e.target.value})} placeholder="VD: Bị yếu tay sau, muốn tập trung thêm vào ngực..." className="w-full bg-zinc-900 border border-zinc-800 p-3 text-white focus:outline-none focus:border-purple-500 transition-colors placeholder:text-zinc-700"></textarea>
+                 </div>
+               </div>
+
+               <button 
+                  onClick={generateAiPlan}
+                  disabled={aiLoading}
+                  className="w-full mt-8 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-black uppercase tracking-widest py-4 skew-x-[-12deg] hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed group"
+               >
+                 <div className="skew-x-[12deg] flex justify-center items-center gap-2">
+                   {aiLoading ? <Zap className="w-4 h-4 animate-pulse" /> : <Zap className="w-4 h-4 group-hover:scale-110 transition-transform"/>}
+                   {aiLoading ? "ĐANG PHÂN TÍCH..." : "TẠO LỊCH TẬP"}
+                 </div>
+               </button>
+             </div>
+          </div>
+        )}
 
         {editingDay !== null && primary ? (
           <div className="flex-1 flex flex-col">
