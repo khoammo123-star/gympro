@@ -12,14 +12,34 @@ export default function App() {
   const [activeTab, setActiveTab] = useState("today");
   const store = useGymStore();
 
+  const [isAdvanced, setIsAdvanced] = useState(() => {
+    return localStorage.getItem("gym-tracker-advanced") === "true";
+  });
+
+  const handleToggleAdvanced = () => {
+    setIsAdvanced((prev) => {
+      const next = !prev;
+      localStorage.setItem("gym-tracker-advanced", String(next));
+      if (!next && ["schedule", "progress", "nutrition", "profile"].includes(activeTab)) {
+        setActiveTab("today");
+      }
+      return next;
+    });
+  };
+
   return (
-    <Layout activeTab={activeTab} setActiveTab={setActiveTab}>
-      {activeTab === "today" && <TodayView state={store.state} toggleExercise={store.toggleDailyExercise} />}
-      {activeTab === "schedule" && <ScheduleView state={store.state} saveWeeklyPlan={store.saveWeeklyPlan} clearPlanDay={store.clearWeeklyPlanDay} updateFullWeeklyPlan={store.updateFullWeeklyPlan} />}
-      {activeTab === "progress" && <ProgressView state={store.state} addMetric={store.addMetric} removeMetric={store.removeMetric} />}
-      {activeTab === "nutrition" && <NutritionView state={store.state} addLog={store.addNutritionLog} removeLog={store.removeNutritionLog} />}
+    <Layout 
+      activeTab={activeTab} 
+      setActiveTab={setActiveTab}
+      isAdvanced={isAdvanced}
+      onToggleAdvanced={handleToggleAdvanced}
+    >
+      {activeTab === "today" && <TodayView state={store.state} toggleExercise={store.toggleDailyExercise} isAdvanced={isAdvanced} updateFullWeeklyPlan={store.updateFullWeeklyPlan} />}
+      {activeTab === "schedule" && isAdvanced && <ScheduleView state={store.state} saveWeeklyPlan={store.saveWeeklyPlan} clearPlanDay={store.clearWeeklyPlanDay} updateFullWeeklyPlan={store.updateFullWeeklyPlan} />}
+      {activeTab === "progress" && isAdvanced && <ProgressView state={store.state} addMetric={store.addMetric} removeMetric={store.removeMetric} />}
+      {activeTab === "nutrition" && isAdvanced && <NutritionView state={store.state} addLog={store.addNutritionLog} removeLog={store.removeNutritionLog} />}
       {activeTab === "exercises" && <ExercisesView />}
-      {activeTab === "profile" && <ProfileView state={store.state} />}
+      {activeTab === "profile" && isAdvanced && <ProfileView state={store.state} />}
     </Layout>
   );
 }

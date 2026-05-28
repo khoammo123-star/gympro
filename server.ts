@@ -28,6 +28,35 @@ async function startServer() {
 
       const { age, daysPerWeek, goal, weaknesses } = req.body;
 
+      // Import predefined exercises to send valid IDs to AI
+      const validExercises = [
+        { id: "e-chest-1", name: "Đẩy ngực ngang với tạ đòn", muscle: "Ngực" },
+        { id: "e-chest-2", name: "Đẩy ngực trên với tạ đơn", muscle: "Ngực" },
+        { id: "e-chest-3", name: "Ép ngực với cáp", muscle: "Ngực" },
+        { id: "e-chest-4", name: "Hít đất", muscle: "Ngực" },
+        { id: "e-back-1", name: "Kéo xô", muscle: "Lưng" },
+        { id: "e-back-2", name: "Gập người kéo tạ đòn", muscle: "Lưng" },
+        { id: "e-back-3", name: "Hít xà đơn", muscle: "Lưng" },
+        { id: "e-back-4", name: "Kéo tạ đơn một tay", muscle: "Lưng" },
+        { id: "e-legs-1", name: "Gánh tạ đòn", muscle: "Chân" },
+        { id: "e-legs-2", name: "Đạp đùi", muscle: "Chân" },
+        { id: "e-legs-3", name: "Đá đùi trước", muscle: "Chân" },
+        { id: "e-legs-4", name: "Móc đùi sau", muscle: "Chân" },
+        { id: "e-legs-5", name: "Nâng bắp chân", muscle: "Chân" },
+        { id: "e-shoulders-1", name: "Đẩy vai trên ghế", muscle: "Vai" },
+        { id: "e-shoulders-2", name: "Nâng tạ hai bên", muscle: "Vai" },
+        { id: "e-shoulders-3", name: "Nâng tạ đơn trước mặt", muscle: "Vai" },
+        { id: "e-arms-1", name: "Cằm tạ đơn cuộn", muscle: "Tay" },
+        { id: "e-arms-2", name: "Cằm tạ đòn cuộn", muscle: "Tay" },
+        { id: "e-arms-3", name: "Nhấn tạ đơn sau tay", muscle: "Tay" },
+        { id: "e-arms-4", name: "Kéo cáp nhấm tay sau", muscle: "Tay" },
+        { id: "e-core-1", name: "Gập bụng", muscle: "Bụng" },
+        { id: "e-core-2", name: "Plank", muscle: "Bụng" },
+        { id: "e-core-3", name: "Nâng chân", muscle: "Bụng" },
+        { id: "e-cardio-1", name: "Chạy bộ trên máy", muscle: "Cardio" },
+        { id: "e-cardio-2", name: "Đạp xe", muscle: "Cardio" }
+      ];
+
       const prompt = `Bạn là một huấn luyện viên cá nhân AI xuất sắc. Dựa vào thông tin sau:
 - Tuổi: ${age}
 - Khách hàng muốn tập: ${daysPerWeek} buổi / tuần.
@@ -36,64 +65,55 @@ async function startServer() {
 
 Hãy lập một lịch tập (workout plan) với chính xác số buổi tập bằng số buổi khách hàng muốn tập trong 1 tuần (1 tuần có 7 ngày, hãy chỉ sử dụng index từ 0 đến 6 đại diện cho Chủ Nhật, Thứ 2, Thứ 3, Thứ 4, Thứ 5, Thứ 6, Thứ 7). Thiết lập lịch tập hợp lý (có ngày nghỉ xen kẽ).
 Đối với mỗi ngày tập, chọn 1 nhóm cơ chính (primaryMuscle) và có thể có nhóm cơ bổ trợ (secondaryMuscles).
-Hãy chọn các bài tập phù hợp cho từng ngày. (Ví dụ Exercise IDs: "bench-press", "squat", "deadlift", "pull-up", etc. mà hợp lý cho nhóm cơ đó). Gán số hiệp (sets) và số lần (reps) cho mỗi bài tập.
-Bạn hãy trả về JSON cứng định dạng này, không kèm text. Tên nhóm cơ chính ở tiếng việt (Ngực, Lưng, Chân, Vai, Tay, Bụng, Cardio).
+Hãy chọn các bài tập CHỈ TỪ DANH SÁCH SAU (yêu cầu sử dụng đúng 'id'):
+${JSON.stringify(validExercises, null, 2)}
+Gán số hiệp (sets) và số lần (reps) cho mỗi bài tập.
+Bạn hãy trả về DUY NHẤT một mảng JSON, KHÔNG KÈM BẤT KỲ TEXT NÀO KHÁC.
 
-Mục tiêu JSON Format (Cần parse Javascript được):
-{
-  "plan": {
-    "1": { // Example key for Monday
-      "primaryMuscle": "Ngực",
-      "secondaryMuscles": ["Tay"],
-      "exercises": [
-        { "exerciseId": "bench-press", "sets": 4, "reps": "8-12" },
-        { "exerciseId": "incline-dumbbell-press", "sets": 3, "reps": "10-12" }
-      ]
-    },
-    // And other days... 1-6 (Monday-Sat). 0 is Sun. Only include keys for days where there is a workout.
+Mục tiêu JSON Format:
+[
+  {
+    "dayOfWeek": 1, // Thứ 2
+    "primaryMuscle": "Ngực",
+    "secondaryMuscles": ["Tay"],
+    "exercises": [
+      { "exerciseId": "e-chest-1", "sets": 4, "reps": "8-12" },
+      { "exerciseId": "e-chest-2", "sets": 3, "reps": "10-12" }
+    ]
+  },
+  {
+    "dayOfWeek": 3, // Thứ 4
+    "primaryMuscle": "Lưng",
+    "secondaryMuscles": ["Tay"],
+    "exercises": [ ... ]
   }
-}`;
+]`;
         
       const response = await ai.models.generateContent({
         model: "gemini-3.5-flash",
         contents: prompt,
         config: {
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-              plan: {
-                type: Type.OBJECT,
-                description: "Một Map cấu trúc với key từ 0 đến 6 (0=Chủ Nhật, 1=Thứ 2...). Bỏ qua những ngày nghỉ (Day off).",
-                additionalProperties: {
-                  type: Type.OBJECT,
-                  properties: {
-                    primaryMuscle: { type: Type.STRING },
-                    secondaryMuscles: { 
-                      type: Type.ARRAY,
-                      items: { type: Type.STRING }
-                    },
-                    exercises: {
-                      type: Type.ARRAY,
-                      items: {
-                        type: Type.OBJECT,
-                        properties: {
-                          exerciseId: { type: Type.STRING },
-                          sets: { type: Type.INTEGER },
-                          reps: { type: Type.STRING }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
+          responseMimeType: "application/json"
         },
       });
 
-      const planData = JSON.parse(response.text || "{}");
-      res.json(planData);
+      const responseArray = JSON.parse(response.text || "[]");
+      console.log("Raw Gemini:", JSON.stringify(responseArray, null, 2));
+      const planMap: Record<string, any> = {};
+      
+      const daysArray = Array.isArray(responseArray) ? responseArray : (responseArray.planDays || []);
+
+      daysArray.forEach((day: any) => {
+        if (day && day.dayOfWeek !== undefined) {
+          planMap[day.dayOfWeek.toString()] = {
+            primaryMuscle: day.primaryMuscle,
+            secondaryMuscles: day.secondaryMuscles || [],
+            exercises: day.exercises || []
+          };
+        }
+      });
+
+      res.json({ plan: planMap, raw: responseArray });
     } catch (error) {
       console.error(error);
       res.status(500).json({ error: "Lỗi kết nối hoặc phân tích từ Gemini API" });

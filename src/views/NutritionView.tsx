@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import React, { useState, useRef } from "react";
 import { Search, Flame, Beef, Droplets, Wheat, Target, ImagePlus, X, Save } from "lucide-react";
 import { AppState, NutritionLog } from "../types";
 import { format } from "date-fns";

@@ -1,4 +1,4 @@
-import { ReactNode, useState, useRef } from "react";
+import React, { ReactNode, useState, useRef } from "react";
 import { format } from "date-fns";
 import { LogIn, LogOut } from "lucide-react";
 import { cn } from "../lib/utils";
@@ -8,42 +8,66 @@ type LayoutProps = {
   children: ReactNode;
   activeTab: string;
   setActiveTab: (t: string) => void;
+  isAdvanced: boolean;
+  onToggleAdvanced: () => void;
 };
 
-export default function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
+export default function Layout({ children, activeTab, setActiveTab, isAdvanced, onToggleAdvanced }: LayoutProps) {
   const { user, loading, signInWithGoogle, logout } = useAuth();
   const [isNavHidden, setIsNavHidden] = useState(false);
-  const lastScrollY = useRef(0);
   
-  const handleScroll = (e: React.UIEvent<HTMLElement>) => {
-    const currentScrollY = e.currentTarget.scrollTop;
-    if (currentScrollY > lastScrollY.current && currentScrollY > 60) {
-      if (!isNavHidden) setIsNavHidden(true);
-    } else if (currentScrollY < lastScrollY.current || currentScrollY <= 60) {
-      if (isNavHidden) setIsNavHidden(false);
-    }
-    lastScrollY.current = currentScrollY;
+  const handleScroll = () => {
+    // Scroll behavior removed to prevent jitter.
   };
 
-  const tabs = [
-    { id: "today", label: "Hôm Nay" },
-    { id: "schedule", label: "Lịch Tập" },
-    { id: "progress", label: "Tiến Độ" },
-    { id: "nutrition", label: "Dinh Dưỡng" },
-    { id: "exercises", label: "Từ Điển" },
-    { id: "profile", label: "Hồ Sơ" },
-  ];
+  const tabs = isAdvanced 
+    ? [
+        { id: "today", label: "Hôm Nay" },
+        { id: "schedule", label: "Lịch Tập" },
+        { id: "progress", label: "Tiến Độ" },
+        { id: "nutrition", label: "Dinh Dưỡng" },
+        { id: "exercises", label: "Từ Điển" },
+        { id: "profile", label: "Hồ Sơ" },
+      ]
+    : [
+        { id: "today", label: "Hôm Nay" },
+        { id: "exercises", label: "Từ Điển" },
+      ];
 
   return (
     <div className="flex h-[100dvh] w-full bg-zinc-950 text-zinc-100 font-sans flex-col overflow-hidden selection:bg-lime-400/30">
       {/* Header Section */}
       <header className="h-16 md:h-20 border-b border-zinc-800 flex items-center justify-between px-4 md:px-8 bg-black shrink-0 relative z-20">
         <div className="flex items-center justify-between w-full lg:w-auto shrink-0 mr-4 md:mr-8 lg:mr-0 z-10">
-          <div className="flex items-center gap-3 md:gap-4 shrink-0">
-            <div className="w-8 h-8 md:w-10 md:h-10 bg-lime-400 rounded-full flex items-center justify-center shrink-0">
-              <div className="w-4 h-4 md:w-5 md:h-5 bg-black rotate-45"></div>
+          <div className="flex items-center gap-2.5 md:gap-5 shrink-0">
+            <div className="flex items-center gap-2 md:gap-3 shrink-0">
+              <div className="w-8 h-8 md:w-10 md:h-10 bg-lime-400 rounded-full flex items-center justify-center shrink-0">
+                <div className="w-4 h-4 md:w-5 md:h-5 bg-black rotate-45"></div>
+              </div>
+              <h1 className="text-xl md:text-3xl font-black tracking-tighter uppercase italic block shrink-0">GYM TRACKER</h1>
             </div>
-            <h1 className="text-xl md:text-3xl font-black tracking-tighter uppercase italic block shrink-0">GYM TRACKER</h1>
+            
+            {/* Chế độ Cơ bản (Mới tập) / Nâng cao */}
+            <div className="flex items-center gap-1.5 p-1 bg-zinc-900 border border-zinc-800 rounded-full select-none">
+              <span className={cn(
+                "text-[8px] md:text-[9.5px] font-black uppercase tracking-wider transition-colors px-1",
+                !isAdvanced ? "text-lime-400 font-extrabold" : "text-zinc-500"
+              )}>Mới tập</span>
+              <button 
+                onClick={onToggleAdvanced}
+                className="w-7 md:w-8 h-3.5 md:h-4 bg-zinc-950 rounded-full relative p-0.5 transition-colors duration-200 outline-none hover:border-zinc-750 border border-zinc-800 flex items-center cursor-pointer"
+                title={isAdvanced ? "Chuyển sang chế độ Mới tập (Cơ Bản)" : "Chuyển sang chế độ Nâng Cao (Đầy đủ chức năng)"}
+              >
+                <div className={cn(
+                  "w-2.5 h-2.5 bg-lime-400 rounded-full transition-all duration-200 shadow-sm",
+                  isAdvanced ? "translate-x-3.5 md:translate-x-4 bg-lime-400" : "translate-x-0 bg-zinc-500"
+                )}></div>
+              </button>
+              <span className={cn(
+                "text-[8px] md:text-[9.5px] font-black uppercase tracking-wider transition-colors px-1",
+                isAdvanced ? "text-lime-400 font-extrabold" : "text-zinc-650"
+              )}>Nâng cao</span>
+            </div>
           </div>
           
           {/* Mobile Auth */}
